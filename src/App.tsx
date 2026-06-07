@@ -40,8 +40,8 @@ interface Toast {
 // ─── Constants ──────────────────────────────────────────────────────
 const PRODUCT_API = '/api/products'
 const ORDER_API   = '/api/orders'
-const PRODUCT_HEALTH = '/actuator/health'
-const ORDER_HEALTH   = '/actuator/health'
+const PRODUCT_HEALTH = '/api/products/actuator/health'
+const ORDER_HEALTH   = '/api/orders/actuator/health'
 
 const SERVICES: ServiceStatus[] = [
   { name: 'Product Service', url: PRODUCT_HEALTH, port: ':8081', icon: '📦', type: 'product' },

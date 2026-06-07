@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION:  us-east-1
-  ECR_REPO:    shopms-prod-frontend
+  # AWS_REGION:  us-east-1
+  DOCKERHUB_IMAGE: rohitkumar4praja/frontend
 
 jobs:
   build-and-deploy:
@@ -30,36 +30,38 @@ jobs:
       - name: Build React app
         run: npm run build
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          aws-region:            ${{ env.AWS_REGION }}
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+      #     aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      # - name: Login to ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & Push Docker Image
-        id: build
-        env:
-          REGISTRY:  ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE_URI=$REGISTRY/$ECR_REPO:$IMAGE_TAG
-          docker build -t $IMAGE_URI .
-          docker push $IMAGE_URI
-          docker tag $IMAGE_URI $REGISTRY/$ECR_REPO:latest
-          docker push $REGISTRY/$ECR_REPO:latest
-          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_IMAGE }}:latest
+            ${{ env.DOCKERHUB_IMAGE }}:${{ github.sha }}
 
-      - name: Update K8s Deployment Image
-        env:
-          REGISTRY:  ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE_URI=$REGISTRY/$ECR_REPO:$IMAGE_TAG
-          kubectl set image deployment/frontend-deployment \
-            frontend=$IMAGE_URI \
-            --namespace=sales
+      # - name: Update K8s Deployment Image
+      #   env:
+      #     REGISTRY:  ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     IMAGE_URI=$REGISTRY/$ECR_REPO:$IMAGE_TAG
+      #     kubectl set image deployment/frontend-deployment \
+      #       frontend=$IMAGE_URI \
+      #       --namespace=sales
